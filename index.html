@@ -563,7 +563,7 @@ function renderRace(){
   const ps=H/340;
   const tilt=(inp().left?-1:0)+(inp().right?1:0);
   drawCar(W/2, H*0.86, ps, DRIVERS[driverIdx].col, DRIVERS[driverIdx].dark, DRIVERS[driverIdx].face, tilt*(player.drift?1.8:1), true);
-  if(boingT>0){ctx.font='bold '+(30+boingT*20)+'px sans-serif';ctx.textAlign='center';
+  if(boingT>0){ctx.font='bold '+(FS(30)+boingT*20)+'px sans-serif';ctx.textAlign='center';
     ctx.fillStyle='#ff6fae';ctx.fillText('BOING!',W/2,H*0.62-boingT*40);}
   // speed lines in turbo / near top speed
   if((player.turboOn||player.speed>CONFIG.maxSpeed*0.82)&&!calm){ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=2;
@@ -587,7 +587,7 @@ function btnCirc(name,x,y,r,label,active){
   ctx.fillText(label,x,y+2);ctx.textBaseline='alphabetic';
 }
 function topBtns(){
-  const r=26;
+  const r=Math.min(26,Math.max(18,H*0.055));
   btnCirc('mute',W-r-14,r+14,r,muted?'🔇':'🔊',false);
   btnCirc('calm',W-r*3-32,r+14,r,'🐢',calm);
   if(state==='RACE'||state==='PAUSE')btnCirc('pause',W-r*5-50,r+14,r,'⏸',false);
@@ -595,45 +595,60 @@ function topBtns(){
 function renderHUD(){
   const pos=racePos();
   ctx.textAlign='left';
-  // position & lap
-  ctx.font='bold 34px sans-serif';ctx.fillStyle='#fff';
-  ctx.strokeStyle='rgba(0,0,0,0.4)';ctx.lineWidth=5;
-  const medals=['🥇','🥈','🥉','4th','5th','6th'];
-  const ptxt=pos<=3?medals[pos-1]+' '+pos+'st'.replace('1st','st'):medals[pos-1];
+  // position & lap (scaled stack, top-left)
+  const f1=FS(34),f2=FS(22);
+  ctx.font='bold '+f1+'px sans-serif';ctx.fillStyle='#fff';
+  ctx.strokeStyle='rgba(0,0,0,0.4)';ctx.lineWidth=Math.max(3,FS(5));
   const posLabel=pos===1?'🥇 1st':pos===2?'🥈 2nd':pos===3?'🥉 3rd':pos+'th';
-  ctx.strokeText(posLabel,16,44);ctx.fillText(posLabel,16,44);
-  ctx.font='bold 22px sans-serif';
-  ctx.strokeText('Lap '+Math.min(player.lap,CONFIG.laps)+'/'+CONFIG.laps,16,76);
-  ctx.fillText('Lap '+Math.min(player.lap,CONFIG.laps)+'/'+CONFIG.laps,16,76);
-  ctx.strokeText('⭐ '+player.stars,16,106);ctx.fillText('⭐ '+player.stars,16,106);
+  let ly=f1+10;
+  ctx.strokeText(posLabel,14,ly);ctx.fillText(posLabel,14,ly);
+  ctx.font='bold '+f2+'px sans-serif';ly+=f2+8;
+  const lapTxt='Lap '+Math.min(player.lap,CONFIG.laps)+'/'+CONFIG.laps;
+  ctx.strokeText(lapTxt,14,ly);ctx.fillText(lapTxt,14,ly);
+  ly+=f2+8;
+  ctx.strokeText('⭐ '+player.stars,14,ly);ctx.fillText('⭐ '+player.stars,14,ly);
   // timer
-  ctx.textAlign='center';
-  ctx.strokeText(fmtTime(raceT),W/2,40);ctx.fillText(fmtTime(raceT),W/2,40);
-  // speed
-  ctx.textAlign='left';
-  ctx.font='bold 26px sans-serif';
+  ctx.textAlign='center';ctx.font='bold '+f2+'px sans-serif';
+  ctx.strokeText(fmtTime(raceT),W/2,f2+14);ctx.fillText(fmtTime(raceT),W/2,f2+14);
   const spd=Math.round(player.speed);
-  ctx.strokeText(spd+' km/h',16,H-96);ctx.fillText(spd+' km/h',16,H-96);
-  // turbo meter
-  const tw=Math.min(300,W*0.4);
-  ctx.fillStyle='rgba(0,0,0,0.3)';rr(16,H-80,tw,26,13);ctx.fill();
   const full=player.turbo>=CONFIG.turboMax*0.99;
-  ctx.fillStyle=full?'#ffd23f':'#7de0ff';
-  if(player.turbo>2){rr(18,H-78,(tw-4)*player.turbo/CONFIG.turboMax,22,11);ctx.fill();}
-  ctx.fillStyle='#fff';ctx.font='bold 17px sans-serif';
-  ctx.fillText('🚀 Turbo'+(full?' – press SPACE / 🚀!':''),22,H-61);
+  if(touchMode){
+    // bottom-centre speed + turbo bar, between the thumb clusters
+    const tw=Math.min(240,Math.max(120,W-560)), tx=W/2-tw/2, th=FS(24), ty=H-th-12;
+    ctx.font='bold '+FS(20)+'px sans-serif';
+    ctx.strokeText(spd+' km/h',W/2,ty-8);ctx.fillText(spd+' km/h',W/2,ty-8);
+    ctx.fillStyle='rgba(0,0,0,0.35)';rr(tx,ty,tw,th,th/2);ctx.fill();
+    ctx.fillStyle=full?'#ffd23f':'#7de0ff';
+    if(player.turbo>2){rr(tx+2,ty+2,(tw-4)*player.turbo/CONFIG.turboMax,th-4,(th-4)/2);ctx.fill();}
+    ctx.fillStyle='#fff';ctx.font='bold '+FS(14)+'px sans-serif';
+    ctx.fillText(full?'Tap 🚀!':'🚀',W/2,ty+th*0.72);
+    ctx.textAlign='left';
+  }else{
+    ctx.textAlign='left';
+    ctx.font='bold '+FS(26)+'px sans-serif';
+    ctx.strokeText(spd+' km/h',16,H-FS(96));ctx.fillText(spd+' km/h',16,H-FS(96));
+    const tw=Math.min(300,W*0.4),th=FS(26);
+    ctx.fillStyle='rgba(0,0,0,0.3)';rr(16,H-FS(80),tw,th,th/2);ctx.fill();
+    ctx.fillStyle=full?'#ffd23f':'#7de0ff';
+    if(player.turbo>2){rr(18,H-FS(80)+2,(tw-4)*player.turbo/CONFIG.turboMax,th-4,(th-4)/2);ctx.fill();}
+    ctx.fillStyle='#fff';ctx.font='bold '+FS(17)+'px sans-serif';
+    ctx.fillText('🚀 Turbo'+(full?' – press SPACE!':''),22,H-FS(80)+th*0.72);
+  }
   topBtns();
   // touch controls
   if(touchMode){
-    const r=44,by=H-r-24;
-    btnCirc('left',r+24,by,r,'◀',held['left']);
-    btnCirc('right',r*3+48,by,r,'▶',held['right']);
-    btnCirc('turbo',W-r-24,by,r,'🚀',player.turboOn);
-    btnCirc('drift',W-r*3-48,by,r,'🌀',held['drift']);
-    btnCirc('brake',W-r*5-72,by,r,'🛑',held['brake']);
+    const r=Math.min(44,Math.max(30,H*0.1)),by=H-r-18;
+    btnCirc('left',r+18,by,r,'◀',held['left']);
+    btnCirc('right',r*3+40,by,r,'▶',held['right']);
+    btnCirc('turbo',W-r-18,by,r,'🚀',player.turboOn);
+    btnCirc('drift',W-r*3-40,by,r,'🌀',held['drift']);
+    btnCirc('brake',W-r*5-62,by,r,'🛑',held['brake']);
   }
 }
 function fmtTime(t){const m=Math.floor(t/60),s=(t%60).toFixed(1);return m+':'+(s<10?'0':'')+s;}
+// UI scale: shrink all chrome on short/narrow screens (mobile landscape ~360px tall)
+function FS(px){return Math.max(11,Math.round(px*Math.min(1,H/640,W/1000)));}
+function isShort(){return H<480;}
 
 // == MENU RENDER ==
 function menuBg(){
@@ -657,29 +672,31 @@ function bigBtn(name,x,y,w,h,title,sub,col){
 function renderTitle(){
   menuBg();
   ctx.textAlign='center';
-  ctx.font='bold '+Math.min(64,W*0.09)+'px sans-serif';
-  ctx.fillStyle='#ff8c2b';ctx.strokeStyle='#fff';ctx.lineWidth=8;
+  ctx.font='bold '+Math.min(64,W*0.09,H*0.13)+'px sans-serif';
+  ctx.fillStyle='#ff8c2b';ctx.strokeStyle='#fff';ctx.lineWidth=FS(8);
   ctx.strokeText('Zoomy Zoo Racers',W/2,H*0.26);ctx.fillText('Zoomy Zoo Racers',W/2,H*0.26);
-  ctx.font=Math.min(40,W*0.06)+'px sans-serif';
-  ctx.fillText('🐯 🐘 🐰 🐢',W/2,H*0.38);
+  ctx.font=Math.min(40,W*0.06,H*0.09)+'px sans-serif';
+  ctx.fillText('🐯 🐘 🐰 🐢',W/2,H*0.4);
   const pulse=1+Math.sin(cloudX*0.1)*0.03;
-  ctx.save();ctx.translate(W/2,H*0.58);ctx.scale(pulse,pulse);
-  ctx.font='bold 34px sans-serif';ctx.fillStyle='#4ec764';ctx.strokeStyle='#fff';ctx.lineWidth=6;
+  ctx.save();ctx.translate(W/2,H*0.6);ctx.scale(pulse,pulse);
+  ctx.font='bold '+Math.min(34,W*0.055,H*0.08)+'px sans-serif';ctx.fillStyle='#4ec764';ctx.strokeStyle='#fff';ctx.lineWidth=FS(6);
   ctx.strokeText('Tap or press SPACE to play!',0,0);ctx.fillText('Tap or press SPACE to play!',0,0);
   ctx.restore();
-  ctx.font='17px sans-serif';ctx.fillStyle='#666';
+  ctx.font=FS(17)+'px sans-serif';ctx.fillStyle='#666';
   ctx.fillText('No ads · No tracking · Kid-safe · Free & open source',W/2,H*0.88);
   topBtns();
 }
 function renderDriver(){
   menuBg();
-  ctx.textAlign='center';ctx.font='bold 38px sans-serif';ctx.fillStyle='#ff8c2b';
-  ctx.strokeStyle='#fff';ctx.lineWidth=7;
-  ctx.strokeText('Choose your racer!',W/2,70);ctx.fillText('Choose your racer!',W/2,70);
-  const cols=W>700?4:2, bw=Math.min(240,(W-40)/cols-16), bh=Math.min(200,(H-160)/Math.ceil(4/cols)-20);
+  const hf=FS(38), hy=hf+FS(28), top=hy+FS(20);
+  ctx.textAlign='center';ctx.font='bold '+hf+'px sans-serif';ctx.fillStyle='#ff8c2b';
+  ctx.strokeStyle='#fff';ctx.lineWidth=FS(7);
+  ctx.strokeText('Choose your racer!',W/2,hy);ctx.fillText('Choose your racer!',W/2,hy);
+  const cols=W>700?4:2, rows=Math.ceil(4/cols);
+  const bw=Math.min(240,(W-40)/cols-16), bh=Math.min(200,(H-top-30)/rows-14);
   const totalW=cols*(bw+16)-16, x0=(W-totalW)/2;
   DRIVERS.forEach((d,i)=>{
-    const cx=x0+(i%cols)*(bw+16), cy=110+Math.floor(i/cols)*(bh+20);
+    const cx=x0+(i%cols)*(bw+16), cy=top+Math.floor(i/cols)*(bh+14);
     btns.push({name:'driver'+i,x:cx,y:cy,w:bw,h:bh});
     ctx.fillStyle='rgba(255,255,255,0.92)';rr(cx,cy,bw,bh,16);ctx.fill();
     ctx.strokeStyle=d.col;ctx.lineWidth=5;rr(cx,cy,bw,bh,16);ctx.stroke();
@@ -693,12 +710,13 @@ function renderDriver(){
 }
 function renderWorld(){
   menuBg();
-  ctx.textAlign='center';ctx.font='bold 38px sans-serif';ctx.fillStyle='#ff8c2b';
-  ctx.strokeStyle='#fff';ctx.lineWidth=7;
-  ctx.strokeText('Pick a world!',W/2,70);ctx.fillText('Pick a world!',W/2,70);
-  const bw=Math.min(520,W-60), bh=Math.min(110,(H-150)/3-18);
+  const hf=FS(38), hy=hf+FS(28), top=hy+FS(18);
+  ctx.textAlign='center';ctx.font='bold '+hf+'px sans-serif';ctx.fillStyle='#ff8c2b';
+  ctx.strokeStyle='#fff';ctx.lineWidth=FS(7);
+  ctx.strokeText('Pick a world!',W/2,hy);ctx.fillText('Pick a world!',W/2,hy);
+  const bw=Math.min(520,W-60), bh=Math.min(110,(H-top-24)/3-12);
   WORLDS.forEach((w,i)=>{
-    const cx=(W-bw)/2, cy=105+i*(bh+18);
+    const cx=(W-bw)/2, cy=top+i*(bh+12);
     btns.push({name:'world'+i,x:cx,y:cy,w:bw,h:bh});
     ctx.fillStyle='rgba(255,255,255,0.92)';rr(cx,cy,bw,bh,16);ctx.fill();
     ctx.strokeStyle=w.rumble;ctx.lineWidth=5;rr(cx,cy,bw,bh,16);ctx.stroke();
@@ -717,7 +735,7 @@ function renderCountdown(){
   renderRaceFrame();
   ctx.textAlign='center';
   const n=Math.ceil(countdownT-0.8);
-  ctx.font='bold '+Math.min(140,W*0.25)+'px sans-serif';
+  ctx.font='bold '+Math.min(140,W*0.25,H*0.32)+'px sans-serif';
   ctx.fillStyle='#ffd23f';ctx.strokeStyle='#fff';ctx.lineWidth=10;
   const txt=n>0?''+n:'GO!';
   ctx.strokeText(txt,W/2,H*0.45);ctx.fillText(txt,W/2,H*0.45);
@@ -726,32 +744,44 @@ function renderRaceFrame(){renderRace();}
 function renderPause(){
   renderRace();
   ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(0,0,W,H);
-  ctx.textAlign='center';ctx.font='bold 48px sans-serif';ctx.fillStyle='#fff';
-  ctx.fillText('⏸ Paused',W/2,H*0.35);
-  bigBtn('resume',W/2-140,H*0.45,280,70,'▶ Keep racing!','', '#4ec764');
-  bigBtn('menu',W/2-140,H*0.58,280,70,'🏠 Menu','', '#ff8c2b');
+  ctx.textAlign='center';ctx.font='bold '+FS(48)+'px sans-serif';ctx.fillStyle='#fff';
+  ctx.fillText('⏸ Paused',W/2,H*0.32);
+  const bw=Math.min(280,(W-60)/(isShort()?2:1)), bh=Math.min(70,H*0.14);
+  if(isShort()){
+    bigBtn('resume',W/2-bw-10,H*0.5,bw,bh,'▶ Race!','', '#4ec764');
+    bigBtn('menu',W/2+10,H*0.5,bw,bh,'🏠 Menu','', '#ff8c2b');
+  }else{
+    bigBtn('resume',W/2-bw/2,H*0.45,bw,bh,'▶ Keep racing!','', '#4ec764');
+    bigBtn('menu',W/2-bw/2,H*0.6,bw,bh,'🏠 Menu','', '#ff8c2b');
+  }
   topBtns();
 }
 function renderFinish(){
   menuBg();
   const f=finishData;
   ctx.textAlign='center';
-  ctx.font='bold 46px sans-serif';ctx.fillStyle='#ff8c2b';ctx.strokeStyle='#fff';ctx.lineWidth=8;
+  ctx.font='bold '+Math.min(46,W*0.07,H*0.1)+'px sans-serif';ctx.fillStyle='#ff8c2b';ctx.strokeStyle='#fff';ctx.lineWidth=FS(8);
   const place=f.pos===1?'🥇 1st place!':f.pos===2?'🥈 2nd place!':f.pos===3?'🥉 3rd place!':'🏁 '+f.pos+'th place!';
-  ctx.strokeText(place,W/2,H*0.2);ctx.fillText(place,W/2,H*0.2);
-  ctx.font='30px sans-serif';ctx.fillStyle='#444';
-  ctx.fillText('⭐ '+f.stars+' stars   ·   ⏱ '+fmtTime(f.time),W/2,H*0.32);
-  if(f.isBest){ctx.fillStyle='#4ec764';ctx.font='bold 26px sans-serif';
-    ctx.fillText('🎉 New best time!',W/2,H*0.4);}
-  else{ctx.fillStyle='#777';ctx.font='22px sans-serif';
-    ctx.fillText('Best: '+fmtTime(f.best),W/2,H*0.4);}
-  ctx.fillStyle='#e85d9a';ctx.font='bold 26px sans-serif';
+  ctx.strokeText(place,W/2,H*0.17);ctx.fillText(place,W/2,H*0.17);
+  ctx.font=Math.min(30,W*0.05,H*0.065)+'px sans-serif';ctx.fillStyle='#444';
+  ctx.fillText('⭐ '+f.stars+' stars  ·  ⏱ '+fmtTime(f.time),W/2,H*0.29);
+  if(f.isBest){ctx.fillStyle='#4ec764';ctx.font='bold '+FS(26)+'px sans-serif';
+    ctx.fillText('🎉 New best time!',W/2,H*0.39);}
+  else{ctx.fillStyle='#777';ctx.font=FS(22)+'px sans-serif';
+    ctx.fillText('Best: '+fmtTime(f.best),W/2,H*0.39);}
+  ctx.fillStyle='#e85d9a';ctx.font='bold '+Math.min(26,W*0.042,H*0.055)+'px sans-serif';
   const cheers=['Amazing driving! 🌟','You zoomed like a champion! 🚀','Super race! Try for more stars! ⭐','Wonderful! The zoo is cheering! 🎉'];
   ctx.fillText(cheers[(f.stars+f.pos)%cheers.length],W/2,H*0.5);
-  bigBtn('again',W/2-150,H*0.58,300,72,'🔁 Play again!','', '#4ec764');
-  bigBtn('menu',W/2-150,H*0.72,300,72,'🏠 Menu','', '#ff8c2b');
+  const bw=Math.min(300,(W-60)/(isShort()?2:1)), bh=Math.min(72,H*0.15);
+  if(isShort()){
+    bigBtn('again',W/2-bw-10,H*0.62,bw,bh,'🔁 Again!','', '#4ec764');
+    bigBtn('menu',W/2+10,H*0.62,bw,bh,'🏠 Menu','', '#ff8c2b');
+  }else{
+    bigBtn('again',W/2-bw/2,H*0.58,bw,bh,'🔁 Play again!','', '#4ec764');
+    bigBtn('menu',W/2-bw/2,H*0.72,bw,bh,'🏠 Menu','', '#ff8c2b');
+  }
   // confetti
-  if(!calm){ctx.font='26px sans-serif';
+  if(!calm){ctx.font=FS(26)+'px sans-serif';
     for(let i=0;i<14;i++){const px=(i*97)%W, py=(cloudX*2+i*140)%H;
       ctx.fillText(['🎊','🎉','⭐'][i%3],px,py);}}
   topBtns();
